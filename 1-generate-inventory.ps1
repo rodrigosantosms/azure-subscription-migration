@@ -16,7 +16,11 @@ clear-host
 ################################################################################################
 # 1 - Connecting to the environment and Exporting Subscription List
 #
-    $AzSubscriptionID = Get-AzSubscription -subscriptionid "d366243b-2b38-46f1-ac64-c6df9e1a929a"
+param(
+    [string]$MySubscriptionID
+
+)
+    $AzSubscriptionID = Get-AzSubscription -subscriptionid $MySubscriptionID
     $mysubid = $AzSubscriptionID.id
     
     # Folder where the script will save the CSV and TXT files for each Tenant and Subscription
