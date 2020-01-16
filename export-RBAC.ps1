@@ -19,6 +19,14 @@ clear-host
 ################################################################################################
 # 1 - Connecting to the environment
 #
+    write-host "**************************************************************************************************************************"
+    write-host "**                                                                                                                      **"
+    write-host "This Script will generate an inventory of your Subscription with: RBAC Assignment, RBAC Custom Roles, List of Resources,  "
+    write-host "List of Management Groups, List of StorageAccount Blob Containers using RBAC, List of AzureSQL using RBAC for the Admin,  "
+    write-host "List of Key Vaults and their Access Policies, List of Managed Identities, and much more can be esily incorporated.        "
+    write-host "Press any key to continue, and then enter the SubscriptionID of the Subscription you want to generate the inventory       "
+    write-host "**                                                                                                                      **"
+    pause
     $MySubscriptionID = Read-Host "Please enter your SubscriptionID"
     Set-AzContext -SubscriptionId $MySubscriptionID
     Select-AzSubscription -Subscription $MySubscriptionID
@@ -120,7 +128,7 @@ clear-host
 # 3 - Starting Data Collector
 #
     write-host ""
-    write-host "************************************ COLLECTING DATA FROM SUBSCRIPTION *******************************************"
+    write-host "************************************ COLLECTING DATA FROM SUBSCRIPTION ************************************ "
     write-host ""
     write-host "Subscription: "  $AzSubscription.Name
     write-host ""
@@ -161,7 +169,7 @@ clear-host
     $zipfile = get-item -path "reports-$mysubid.zip"
 
     write-host ""
-    write-host "************************* DATA SUCCESSFULLY COLLECTED FROM SUBSCRIPTION - DOWNLOAD THE REPORT ZIP FILE *********************************"
+    write-host "****************** DATA SUCCESSFULLY COLLECTED FROM THE SUBSCRIPTION - DOWNLOAD THE REPORT ZIP FILE ******************"
     write-host "Download the file: " $zipfile.FullName
     write-host ""
 
