@@ -19,20 +19,16 @@ clear-host
 ################################################################################################
 # 1 - Connecting to the environment
 #
-Param(
-    
-    [string] $MySubscriptionID
-)
-
+    $MySubscriptionID = Read-Host "Please enter your SubscriptionID"
     write-host $MySubscriptionID
+    $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
+    $AzSubscription
+    $mysubid = $AzSubscription.id
     pause
     pause
 
-    $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
-    $mysubid = $AzSubscription.id
-    
     # Folder where the script will save CSV and TXT files
-    Set-Location -path ($home + "/clouddrive")
+    #Set-Location -path ($home + "/clouddrive")
     New-Item -Path "$mysubid" -Type Directory -Force -ErrorAction SilentlyContinue | Out-Null
     Set-Location -path $mysubid
 
