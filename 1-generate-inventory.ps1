@@ -19,10 +19,6 @@ clear-host
 ################################################################################################
 # 1 - Connecting to the environment and Exporting Subscription List
 #
-param(
-    [string]$MySubscriptionID
-
-)
     $AzSubscriptionID = Get-AzSubscription -subscriptionid $MySubscriptionID
     $mysubid = $AzSubscriptionID.id
     
