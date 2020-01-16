@@ -156,9 +156,11 @@ clear-host
     dir ".\$mysubid"
 
     Compress-Archive -Path  "$mysubid\*.*" -CompressionLevel Fastest -DestinationPath "reports-$mysubid.zip" -Force
+    $zipfile = get-item -path "reports-$mysubid.zip"
 
     write-host ""
     write-host "************************* DATA SUCCESSFULLY COLLECTED FROM SUBSCRIPTION - DOWNLOAD THE REPORT ZIP FILE *********************************"
+    write-host "Download the file: " $zipfile.FullName
     write-host ""
 
 ################################################################################################
