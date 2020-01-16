@@ -1,4 +1,0 @@
-cd $home/clouddrive
-$file1 = "https://aka.ms/azsubmig"
-Invoke-WebRequest -Uri $file1 -outfile "export-RBAC.ps1"
-./export-RBAC.ps1
