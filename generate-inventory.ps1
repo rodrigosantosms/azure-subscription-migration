@@ -107,7 +107,7 @@ clear-host
             }
         }
         $keyvaults = Get-AzKeyVault
-        Export_KeyVault ($currentsubId) | Export-Csv -Path "10_Inv_AzKeyVault.csv" -NoTypeInformation  -Force | Out-Null
+        Export_KeyVault ($currentsubId) | Export-Csv -Path "6_Inv_AzKeyVault.csv" -NoTypeInformation  -Force | Out-Null
         foreach ($keyvault in $keyvaults){
             Get_Inv_AzKeyVaultAPTxt($keyvault.VaultName) | Export-Csv -Path ("6_Inv_AzKeyVaultAccessPolicies-" + $keyvault.VaultName + ".csv") -NoTypeInformation  -Force | Out-Null
         }
