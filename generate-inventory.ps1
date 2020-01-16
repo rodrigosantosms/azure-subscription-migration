@@ -20,6 +20,8 @@ clear-host
 # 1 - Connecting to the environment
 #
     $MySubscriptionID = Read-Host "Please enter your SubscriptionID"
+    Set-AzContext -SubscriptionId $MySubscriptionID
+    Select-AzSubscription -Subscription $MySubscriptionID
     $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
     $mysubid = $AzSubscription.id
 
