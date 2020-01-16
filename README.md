@@ -1,7 +1,8 @@
-# Azure Subscription Migration - Exporting and Restoring RBAC after migrate an Azure Subscription between Azure AD Tenants.
+# Azure Subscription Migration - Exporting and Restoring RBAC after migrating an Azure Subscription between Azure AD Tenants.
 
 ## Who must read this document
 Any organization or individual planning to migrate an Azure Subscription between Azure AD Tenants.
+Please also work with you Microsoft Premier Field Engineers, Consultants, Cloud Solution Architects, and or Partners, to build a Migration Playbook for your organization in order to map any possible risk or issue, and to avoid any possible downtime or problem, that this migration could cause. 
 
 ## Background
 Changing an Azure Subscription between Tenants can be very complex and critical task, and must be executed with caution.
