@@ -21,10 +21,11 @@ clear-host
 #
     write-host "**************************************************************************************************************************"
     write-host "**                                                                                                                      **"
-    write-host "This Script will generate an inventory of your Subscription with: RBAC Assignment, RBAC Custom Roles, List of Resources,  "
+    write-host "This Script generates a Subscription inventory with the following: RBAC Assignment, RBAC Custom Roles, List of Resources, "
     write-host "List of Management Groups, List of StorageAccount Blob Containers using RBAC, List of AzureSQL using RBAC for the Admin,  "
     write-host "List of Key Vaults and their Access Policies, List of Managed Identities, and much more can be esily incorporated.        "
-    write-host "Press any key to continue, and then enter the SubscriptionID of the Subscription you want to generate the inventory       "
+    Write-host "                                                                                                                          "
+    write-host "Press any key to continue, then enter the SubscriptionID you want to generate the inventory                               "
     write-host "**                                                                                                                      **"
     pause
 
@@ -123,7 +124,7 @@ clear-host
             }
         }
         $keyvaults = Get-AzKeyVault
-        Export_KeyVault ($currentsubId) | Export-Csv -Path "6_Inv_AzKeyVault.csv" -NoTypeInformation  -Force | Out-Null
+        Export_KeyVault ($currentsubId) | Export-Csv -Path "$mysubid\6_Inv_AzKeyVault.csv" -NoTypeInformation  -Force | Out-Null
         foreach ($keyvault in $keyvaults){
             Get_Inv_AzKeyVaultAPTxt($keyvault.VaultName) | Export-Csv -Path ("$mysubid\6_Inv_AzKeyVaultAccessPolicies-" + $keyvault.VaultName + ".csv") -NoTypeInformation  -Force | Out-Null
         }
