@@ -20,12 +20,8 @@ clear-host
 # 1 - Connecting to the environment
 #
     $MySubscriptionID = Read-Host "Please enter your SubscriptionID"
-    write-host $MySubscriptionID
     $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
-    $AzSubscription
     $mysubid = $AzSubscription.id
-    pause
-    pause
 
     # Folder where the script will save CSV and TXT files
     #Set-Location -path ($home + "/clouddrive")
