@@ -45,8 +45,8 @@ The project is structed as follows:
 
 All that you have to do is:
 
-1 - Open the Azure Portal, open the Cloud Shell and Select "PowerShell" mode
-2 - Execute the following commands:
+1. Open the Azure Portal, open the Cloud Shell and Select "PowerShell" mode
+2. Execute the following commands:
 
 ```
 cd $home/clouddrive
@@ -63,8 +63,9 @@ All data is saved in .csv format in a folder in your $home/CloudDrive folder. Fo
 
 After you have exported the RBAC state and full inventory, and migrated your subscription to the target Tenant, it is time to restore the RBAC assignments.
 
-1 - Open the Azure Portal, open the Cloud Shell and Select "PowerShell" mode
-2 - Execute the following commands:
+1. Open the Azure Portal, open the Cloud Shell and Select "PowerShell" mode
+2. Execute the following commands:
+
 ```
 cd $home/clouddrive
 $file1 = "https://aka.ms/azsubmig"
