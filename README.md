@@ -59,9 +59,10 @@ Invoke-WebRequest -Uri $file1 -outfile "export-RBAC.ps1"
 All data is saved in .csv format in a folder in your $home/CloudDrive folder. Folder name is your SubscriptionID. 
 
 
-## Step2 - Restoring RBAC permissions
+## Step 2 - Restoring RBAC permissions
 
 After you have exported the RBAC state and full inventory, and migrated your subscription to the target Tenant, it is time to restore the RBAC assignments.
+This script assumes that you already recreated all Users, Groups and Management Groups structure already using the same names. If that is not the case, open the .CSV files with Excel, do the necessary changes, upload the modified file back to the CloudShell Drive and execute the following steps: 
 
 1. Open the Azure Portal, open the Cloud Shell and Select "PowerShell" mode
 2. Execute the following commands:
@@ -70,5 +71,5 @@ After you have exported the RBAC state and full inventory, and migrated your sub
 cd $home/clouddrive
 $file1 = "https://aka.ms/azsubmig"
 Invoke-WebRequest -Uri $file1 -outfile "export-RBAC.ps1"
-./export-RBAC.ps1
+./import-RBAC.ps1
 ```
