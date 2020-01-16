@@ -24,9 +24,8 @@ clear-host
     $mysubid = $AzSubscription.id
 
     # Folder where the script will save CSV and TXT files
-    #Set-Location -path ($home + "/clouddrive")
+    Set-Location -path ($home + "\clouddrive")
     New-Item -Path "$mysubid" -Type Directory -Force -ErrorAction SilentlyContinue | Out-Null
-    Set-Location -path $mysubid
 
 ################################################################################################
 # 2 - Defining functions to collect the data
@@ -110,7 +109,7 @@ clear-host
         $keyvaults = Get-AzKeyVault
         Export_KeyVault ($currentsubId) | Export-Csv -Path "6_Inv_AzKeyVault.csv" -NoTypeInformation  -Force | Out-Null
         foreach ($keyvault in $keyvaults){
-            Get_Inv_AzKeyVaultAPTxt($keyvault.VaultName) | Export-Csv -Path ("6_Inv_AzKeyVaultAccessPolicies-" + $keyvault.VaultName + ".csv") -NoTypeInformation  -Force | Out-Null
+            Get_Inv_AzKeyVaultAPTxt($keyvault.VaultName) | Export-Csv -Path ("$mysubid\6_Inv_AzKeyVaultAccessPolicies-" + $keyvault.VaultName + ".csv") -NoTypeInformation  -Force | Out-Null
         }
     }
 
@@ -127,23 +126,23 @@ clear-host
 
     # 3.1 - Collecting Custom RBAC Definitions
     write-host "1 - Collecting Custom RBAC Definitions"
-    Get_Inv_AzData -datasource "Azure" -cmd "Get-AzRoleDefinition -custom" | Export-Csv -Path "1_Inv_AzADRoleDefinition.csv" -NoTypeInformation -Force | Out-Null
+    Get_Inv_AzData -datasource "Azure" -cmd "Get-AzRoleDefinition -custom" | Export-Csv -Path "$mysubid\1_Inv_AzADRoleDefinition.csv" -NoTypeInformation -Force | Out-Null
 
     # 3.2 - Collecting Management Groups
     write-host "2 - Collecting Management Groups"
-    Get_Inv_AzData -datasource "Azure" -cmd "Get-AzManagementGroup" | Export-Csv -Path "2_Inv_AzManagementGroup.csv" -NoTypeInformation -Force | Out-Null
+    Get_Inv_AzData -datasource "Azure" -cmd "Get-AzManagementGroup" | Export-Csv -Path "$mysubid\2_Inv_AzManagementGroup.csv" -NoTypeInformation -Force | Out-Null
 
     # 3.3 - Collecting Subscription Information
     write-host "3 - Collecting Subscription Information"
-    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzSubscription -SubscriptionId $mysubid" | Export-Csv -Path "3_Inv_AzSubscription.csv" -NoTypeInformation  -Force | Out-Null
+    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzSubscription -SubscriptionId $mysubid" | Export-Csv -Path "$mysubid\3_Inv_AzSubscription.csv" -NoTypeInformation  -Force | Out-Null
             
     # 3.4 - Collecting Subscription Resources
     write-host "4 - Collecting Subscription Resources"
-    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzResource" | Export-Csv -Path "4_Inv_AzAllResources.csv" -NoTypeInformation  -Force | Out-Null
+    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzResource" | Export-Csv -Path "$mysubid\4_Inv_AzAllResources.csv" -NoTypeInformation  -Force | Out-Null
             
     # 3.5 - Collecting Management Group and Subscription RBAC
     write-host "5 - Collecting Management Group and Subscription RBAC"
-    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzRoleAssignment" | Export-Csv -Path "5_Inv_RBAC.csv" -NoTypeInformation  -Force | Out-Null
+    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzRoleAssignment" | Export-Csv -Path "$mysubid\5_Inv_RBAC.csv" -NoTypeInformation  -Force | Out-Null
                     
     # 3.6- Collecting Subscription Key Vaults and Access Policies
     write-host "6 - Collecting Subscription Key Vaults and Access Policies"
@@ -154,8 +153,12 @@ clear-host
 
     Disable-AzContextAutosave  | Out-Null
 
+    dir ".\$mysubid"
+
+    Compress-Archive -Path  "$mysubid\*.*" -CompressionLevel Fastest -DestinationPath "reports-$mysubid.zip" -Force
+
     write-host ""
-    write-host "************************************ DATA SUCCESSFULLY COLLECTED FROM SUBSCRIPTION *******************************************"
+    write-host "************************* DATA SUCCESSFULLY COLLECTED FROM SUBSCRIPTION - DOWNLOAD THE REPORT ZIP FILE *********************************"
     write-host ""
 
 ################################################################################################
