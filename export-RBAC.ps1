@@ -170,7 +170,7 @@ clear-host
 
     write-host ""
     write-host "****************** DATA SUCCESSFULLY COLLECTED FROM THE SUBSCRIPTION - DOWNLOAD THE REPORT ZIP FILE ******************"
-    write-host "Download the file: " $zipfile.FullName
+    write-host "Download the inventory report from: " $zipfile.FullName
     write-host ""
 
 ################################################################################################
