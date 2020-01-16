@@ -25,11 +25,9 @@ clear-host
     write-host "List of Management Groups, List of StorageAccount Blob Containers using RBAC, List of AzureSQL using RBAC for the Admin,  "
     write-host "List of Key Vaults and their Access Policies, List of Managed Identities, and much more can be esily incorporated.        "
     Write-host "                                                                                                                          "
-    write-host "Press any key to continue, then enter the SubscriptionID you want to generate the inventory                               "
-    write-host "**                                                                                                                      **"
     pause
 
-    $MySubscriptionID = Read-Host "Please enter your SubscriptionID"
+    $MySubscriptionID = Read-Host "Please enter your SubscriptionID: "
 
     Set-AzContext -SubscriptionId $MySubscriptionID
     Select-AzSubscription -Subscription $MySubscriptionID
@@ -43,6 +41,9 @@ clear-host
     # Downloading Second Script
     $file2 = "https://raw.githubusercontent.com/rodrigosantosms/azure-subscription-migration/master/import-RBAC.ps1"
     Invoke-WebRequest -Uri $file2 -outfile "import-RBAC.ps1"
+
+    install-module -name Az.ManagedServiceIdentity -force
+    import-module -name Az.ManagedServiceIdentity -force
 
 ################################################################################################
 # 2 - Defining functions to collect the data
@@ -119,14 +120,14 @@ clear-host
                 $obj | Add-Member -MemberType NoteProperty -Name VaultURI -Value $keyvault.VaultURI -Force
                 $obj | Add-Member -MemberType NoteProperty -Name SKU -Value $keyvault.SKU -Force
                 $obj | Add-Member -MemberType NoteProperty -Name AccessPolicies  -Value $keyvault.AccessPolicies -Force
-                $obj | Add-Member -MemberType NoteProperty -Name AccessPoliciesText  -Value "Open the file 6_Inv_AzKeyVaultAccessPolicies-$($keyvault.VaultName).csv" -Force
+                $obj | Add-Member -MemberType NoteProperty -Name AccessPoliciesText  -Value "Open the file 7_Inv_AzKeyVaultAccessPolicies-$($keyvault.VaultName).csv" -Force
                 $obj
             }
         }
         $keyvaults = Get-AzKeyVault
-        Export_KeyVault ($currentsubId) | Export-Csv -Path "$mysubid\6_Inv_AzKeyVault.csv" -NoTypeInformation  -Force | Out-Null
+        Export_KeyVault ($currentsubId) | Export-Csv -Path "$mysubid\7_Inv_AzKeyVault.csv" -NoTypeInformation  -Force | Out-Null
         foreach ($keyvault in $keyvaults){
-            Get_Inv_AzKeyVaultAPTxt($keyvault.VaultName) | Export-Csv -Path ("$mysubid\6_Inv_AzKeyVaultAccessPolicies-" + $keyvault.VaultName + ".csv") -NoTypeInformation  -Force | Out-Null
+            Get_Inv_AzKeyVaultAPTxt($keyvault.VaultName) | Export-Csv -Path ("$mysubid\7_Inv_AzKeyVaultAccessPolicies-" + $keyvault.VaultName + ".csv") -NoTypeInformation  -Force | Out-Null
         }
     }
 
@@ -160,9 +161,13 @@ clear-host
     # 3.5 - Collecting Management Group and Subscription RBAC
     write-host "5 - Collecting Management Group and Subscription RBAC"
     Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzRoleAssignment" | Export-Csv -Path "$mysubid\5_Inv_RBAC.csv" -NoTypeInformation  -Force | Out-Null
-                    
-    # 3.6- Collecting Subscription Key Vaults and Access Policies
-    write-host "6 - Collecting Subscription Key Vaults and Access Policies"
+
+    # 3.6 - Collecting Users-Assigned Managed Identity
+    write-host "6 - Collecting Users-Assigned Managed Identity"
+    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzUserAssignedIdentity" | Export-Csv -Path "$mysubid\6_Inv_UserAssignedIdentity.csv" -NoTypeInformation  -Force | Out-Null
+                
+    # 3.7- Collecting Subscription Key Vaults and Access Policies
+    write-host "7 - Collecting Subscription Key Vaults and Access Policies"
     Get_Inv_AzKeyVault ($mysubid)
             
     write-host ""
