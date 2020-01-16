@@ -21,9 +21,12 @@ clear-host
 #
 Param(
     
-    [string] $MySubscriptionID = ''
+    [string] $MySubscriptionID
 )
 
+    write-host $MySubscriptionID
+    pause
+    pause
 
     $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
     $mysubid = $AzSubscription.id
