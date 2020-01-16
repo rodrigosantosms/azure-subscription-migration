@@ -19,6 +19,12 @@ clear-host
 ################################################################################################
 # 1 - Connecting to the environment
 #
+Param(
+    
+    [string] $MySubscriptionID = ''
+)
+
+
     $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
     $mysubid = $AzSubscription.id
     
@@ -134,7 +140,7 @@ clear-host
 
     # 3.3 - Collecting Subscription Information
     write-host "3 - Collecting Subscription Information"
-    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzSubscription -SubscriptionID $mysubid" | Export-Csv -Path "3_Inv_AzSubscription.csv" -NoTypeInformation  -Force | Out-Null
+    Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzSubscription -SubscriptionId $mysubid" | Export-Csv -Path "3_Inv_AzSubscription.csv" -NoTypeInformation  -Force | Out-Null
             
     # 3.4 - Collecting Subscription Resources
     write-host "4 - Collecting Subscription Resources"
