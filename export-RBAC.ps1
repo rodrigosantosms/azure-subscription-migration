@@ -27,7 +27,9 @@ clear-host
     write-host "Press any key to continue, and then enter the SubscriptionID of the Subscription you want to generate the inventory       "
     write-host "**                                                                                                                      **"
     pause
+
     $MySubscriptionID = Read-Host "Please enter your SubscriptionID"
+
     Set-AzContext -SubscriptionId $MySubscriptionID
     Select-AzSubscription -Subscription $MySubscriptionID
     $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
@@ -36,6 +38,10 @@ clear-host
     # Folder where the script will save CSV and TXT files
     Set-Location -path ($home + "\clouddrive")
     New-Item -Path "$mysubid" -Type Directory -Force -ErrorAction SilentlyContinue | Out-Null
+
+    # Downloading Second Script
+    $file2 = "https://raw.githubusercontent.com/rodrigosantosms/azure-subscription-migration/master/import-RBAC.ps1"
+    Invoke-WebRequest -Uri $file2 -outfile "import-RBAC.ps1"
 
 ################################################################################################
 # 2 - Defining functions to collect the data
@@ -170,7 +176,15 @@ clear-host
 
     write-host ""
     write-host "****************** DATA SUCCESSFULLY COLLECTED FROM THE SUBSCRIPTION - DOWNLOAD THE REPORT ZIP FILE ******************"
+    Write-host ""
     write-host "Download the inventory report from: " $zipfile.FullName
     write-host ""
+    Write-host ""
+    write-host "****************** RECOMMENDED NEXT STEPS ******************"
+    Write-host "1 - Validate all the reports, avoid making changes in the .csv files"
+    Write-host "2 - Migrate the Subscription from the Source to the Destination Azure AD Tenant"
+    Write-host "3 - If you will use a different Account to access the Destination Tenant, download all files from your Cloudshell/Cloudrive, and upload to your new one"
+    Write-host "4 - Execute the powershell script:   .\import-RBAC.ps1    (This script will use the .csv files saved in the SubscriptionID folder."
+    Write-host ""
 
 ################################################################################################
