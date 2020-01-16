@@ -1,4 +1,4 @@
-# Directory change for Azure Subscription
+# Azure Subscription Migration - Exporting and Restoring RBAC after migrate an Azure Subscription between Azure AD Tenants.
 
 ## Who must read this document
 Any organization or individual planning to migrate an Azure Subscription between Azure AD Tenants.
