@@ -17,12 +17,12 @@
 clear-host
 
 ################################################################################################
-# 1 - Connecting to the environment and Exporting Subscription List
+# 1 - Connecting to the environment
 #
-    $AzSubscriptionID = Get-AzSubscription -subscriptionid $MySubscriptionID
-    $mysubid = $AzSubscriptionID.id
+    $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
+    $mysubid = $AzSubscription.id
     
-    # Folder where the script will save the CSV and TXT files for each Tenant and Subscription
+    # Folder where the script will save CSV and TXT files
     Set-Location -path ($home + "/clouddrive")
     New-Item -Path "$mysubid" -Type Directory -Force -ErrorAction SilentlyContinue | Out-Null
     Set-Location -path $mysubid
@@ -120,12 +120,12 @@ clear-host
     write-host ""
     write-host "************************************ COLLECTING DATA FROM SUBSCRIPTION *******************************************"
     write-host ""
-    write-host "Source Tenant: " $SourceTenantID " - Subscription: " $sub.Name
+    write-host "Subscription: "  $AzSubscription.Name
     write-host ""
 
 
-    # 3.1 - Collecting AAD Role Definitions
-    write-host "1 - Collecting AAD Role Definitions"
+    # 3.1 - Collecting Custom RBAC Definitions
+    write-host "1 - Collecting Custom RBAC Definitions"
     Get_Inv_AzData -datasource "Azure" -cmd "Get-AzRoleDefinition -custom" | Export-Csv -Path "1_Inv_AzADRoleDefinition.csv" -NoTypeInformation -Force | Out-Null
 
     # 3.2 - Collecting Management Groups
@@ -140,8 +140,8 @@ clear-host
     write-host "4 - Collecting Subscription Resources"
     Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzResource" | Export-Csv -Path "4_Inv_AzAllResources.csv" -NoTypeInformation  -Force | Out-Null
             
-    # 3.5 - Collecting Management Group and Subscription Role Assignment
-    write-host "5 - Collecting Subscription User Role Assignment"
+    # 3.5 - Collecting Management Group and Subscription RBAC
+    write-host "5 - Collecting Management Group and Subscription RBAC"
     Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzRoleAssignment" | Export-Csv -Path "5_Inv_RBAC.csv" -NoTypeInformation  -Force | Out-Null
                     
     # 3.6- Collecting Subscription Key Vaults and Access Policies
