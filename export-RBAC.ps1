@@ -84,6 +84,7 @@ clear-host
                 }
             }
             if(($datasource -eq "Subscription") -and ($cmd -eq "Get-AzRoleAssignment")){
+                write-host "$AzureDataEntry.ObjectId"
                 if($AzureDataEntry.ObjectType -eq "User"){
                     $currentRBACUser = get-azureaduser -filter "ObjectId eq '$AzureDataEntry.ObjectId'"
                     $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value  ($currentRBACUser).UserType -Force
