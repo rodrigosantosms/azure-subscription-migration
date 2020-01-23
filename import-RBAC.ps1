@@ -19,41 +19,101 @@ clear-host
 ################################################################################################
 # 1 - Connecting to the environment
 #
-    write-host "**************************************************************************************************************************"
-    write-host "**                                                                                                                      **"
-    write-host "This Script generates a Subscription inventory with the following: RBAC Assignment, RBAC Custom Roles, List of Resources, "
-    write-host "List of Management Groups, List of StorageAccount Blob Containers using RBAC, List of AzureSQL using RBAC for the Admin,  "
-    write-host "List of Key Vaults and their Access Policies, List of Managed Identities, and much more can be esily incorporated.        "
-    Write-host "                                                                                                                          "
-    pause
+write-host "**************************************************************************************************************************"
+write-host "**                                                                                                                      **"
+write-host "This Script recreates custom RBAC Roles and reassigns RBAC                                                                "
+Write-host "                                                                                                                          "
+pause
 
-    $MySubscriptionID = Read-Host "Please enter your SubscriptionID: "
+$MySubscriptionID = Read-Host "Please enter your SubscriptionID: "
 
-    Set-AzContext -SubscriptionId $MySubscriptionID
-    Select-AzSubscription -Subscription $MySubscriptionID
-    $AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
-    $mysubid = $AzSubscription.id
+Set-AzContext -SubscriptionId $MySubscriptionID
+Select-AzSubscription -Subscription $MySubscriptionID
+$AzSubscription = Get-AzSubscription -subscriptionid $MySubscriptionID
+$mysubid = $AzSubscription.id
 
-    # Folder where the script will save CSV and TXT files
-    Set-Location -path ($home + "\clouddrive")
+# Folder where the script will save CSV and TXT files
+Set-Location -path ($home + "\clouddrive")
 
 ################################################################################################
-# 2 - ReAdding RBAC Assignment
+# 2 - Importing RBAC Assignment
 #
 
-function New-InvAzRoleAssignment () {
-    $path = "$mysubid\9_Inv_AzRoleAssignment.csv"
-        $InvAzRoleAssignment = Import-Csv $path
-        foreach ($RoleAssignment in $InvAzRoleAssignment) {
-            if ($RoleAssignment.ObjectType -eq "User"){
-                New-AzRoleAssignment -SignInName $RoleAssignment.SignInName -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
-            }elseif ($RoleAssignment.ObjectType -eq "Group"){
-                $groupId = Get-AzADGroup -SearchString $RoleAssignment.DisplayName
-                New-AzRoleAssignment -ObjectId $groupId.id -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
-            }elseif ($RoleAssignment.ObjectType -eq "ServicePrincipal"){
-                $servicePrincipal = Get-AzADServicePrincipal -SearchString $RoleAssignment.DisplayName
-                New-AzRoleAssignment -RoleDefinitionName $RoleAssignment.RoleDefinitionName -ApplicationId $servicePrincipal.ApplicationId -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
+function Import-InvAzRoleAssignment () {
+    $path = "$mysubid\5_Inv_RBAC.csv"
+    $InvAzRoleAssignment = Import-Csv $path
+    foreach ($RoleAssignment in $InvAzRoleAssignment) {
+        if ($RoleAssignment.ObjectType -eq "User") {
+            New-AzRoleAssignment -SignInName $RoleAssignment.SignInName -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
+        }
+        elseif ($RoleAssignment.ObjectType -eq "Group") {
+            $groupId = Get-AzADGroup -SearchString $RoleAssignment.DisplayName
+            New-AzRoleAssignment -ObjectId $groupId.id -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
+        }
+        elseif ($RoleAssignment.ObjectType -eq "ServicePrincipal") {
+            $servicePrincipal = Get-AzADServicePrincipal -SearchString $RoleAssignment.DisplayName
+            New-AzRoleAssignment -RoleDefinitionName $RoleAssignment.RoleDefinitionName -ApplicationId $servicePrincipal.ApplicationId -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
+        }
+    }
+}
+
+# Function to recreate all Custom RBAC Roles (it will read all Custom Roles in the CSV file and will recreate them with the same names in the new Tenant)
+function Import-InvAzRoleDefinition ($mysubid) {
+    $path = "$mysubid\1_Inv_AzADRoleDefinition.csv"
+    $InvAzRoleDefinition = Import-Csv $path
+
+    foreach ($rl in $InvAzRoleDefinition) {
+        $role = Get-AzRoleDefinition "Virtual Machine Contributor"
+        $role.Id = $null
+        $role.Actions.RemoveRange(0, $role.Actions.Count)
+        $role.DataActions.RemoveRange(0, $role.DataActions.Count)
+        $role.NotActions.RemoveRange(0, $role.NotActions.Count)
+        $role.NotDataActions.RemoveRange(0, $role.NotDataActions.Count)
+        $role.Name = $rl.Name
+        $role.Description = $rl.Description
+        $role.AssignableScopes.Clear()
+
+        if ($rl.actions.count -lt 2) {
+            $rlactions = [System.Collections.ArrayList]$rl.actions.Split(',')
+            $rlactions.RemoveAt($rlactions.Count - 1)
+            foreach ($act in $rlactions) {
+                $role.Actions.Add($act)
             }
         }
+
+        if ($rl.DataActions.count -lt 2) {
+            $rldataactions = [System.Collections.ArrayList]$rl.DataActions.Split(',')
+            $rldataactions.RemoveAt($rldataactions.Count - 1)
+            foreach ($dataact in $rldataactions) {
+                $role.DataActions.Add($dataact.trim())
+            }
+        }
+
+        if ($rl.NotActions.count -lt 2) {
+            $Notrlactions = [System.Collections.ArrayList]$rl.NotActions.Split(',')
+            $Notrlactions.RemoveAt($Notrlactions.Count - 1)
+            foreach ($NotAct in $Notrlactions) {
+                $role.NotActions.Add($NotAct.trim())
+            }
+        }
+
+        if ($rl.NotDataActions.count -lt 2) {
+            $Notrldataactions = [System.Collections.ArrayList]$rl.NotDataActions.Split(',')
+            $Notrldataactions.RemoveAt($Notrldataactions.Count - 1)
+            foreach ($NotDataact in $Notrldataactions) {
+                $role.NotDataActions.Add($NotDataact.trim())
+            }
+        }
+
+        if ($rl.AssignableScopes.count -lt 2) {
+            $AsgScopes = [System.Collections.ArrayList]$rl.AssignableScopes.Split(',')
+            $AsgScopes.RemoveAt($AsgScopes.Count - 1)
+            foreach ($asc in $AsgScopes) {
+                $role.AssignableScopes.Add($asc.trim())
+            }
+        }
+        New-AzRoleDefinition -Role $role
+    }
 }
-New-InvAzRoleAssignment
+Import-InvAzRoleDefinition -mysubid $mysubid
+Import-InvAzRoleAssignment -mysubid $mysubid

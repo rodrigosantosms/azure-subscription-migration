@@ -81,24 +81,9 @@ clear-host
                     $obj | Add-Member -MemberType NoteProperty -Name ($DataProperty.Name) -Value $AzureDataEntry.($DataProperty.Name) -Force
                 }
             }
-            if(($datasource -eq "Subscription") -and ($cmd -eq "Get-AzRoleAssignment")){
-                if($AzureDataEntry.ObjectType -eq "User"){
-                    $currentRBACUser = get-azureaduser -filter "ObjectId eq '$AzureDataEntry.ObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value  ($currentRBACUser).UserType -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value ($currentRBACUser).Mail -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value ($currentRBACUser).DirSyncEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value ($currentRBACUser).AccountEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value ($currentRBACUser).MailNickName -Force
-                }elseif ($AzureDataEntry.ObjectType -eq "Group"){
-                    $currentRBACGroup = get-azureadgroup -filter "ObjectId eq '$AzureDataEntry.ObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value  ($currentRBACGroup).DirSyncEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value ($currentRBACGroup).MailNickName -Force
-                }elseif($AzureDataEntry.ObjectType -eq "ServicePrincipal"){
-                    $currentRBACServicePrincipal = get-azureadServicePrincipal -filter "ObjectId eq '$AzureDataEntry.ObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value  ($currentRBACServicePrincipal).ServicePrincipalType -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value  ($currentRBACServicePrincipal).AccountEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value  ($currentRBACServicePrincipal).Homepage -Force
-                }
+            if($cmd -eq "Get-AzureADGroup"){
+                $obj | Add-Member -MemberType NoteProperty -Name GroupMembers -Value ([string](Get-AzureADGroupMember -ObjectId $AzureDataEntry.ObjectId | ForEach-Object { "$($_.UserPrincipalName),"})) -Force
+                $obj | Add-Member -MemberType NoteProperty -Name GroupMembersDetails -Value ([string](Get-AzureADGroupMember -ObjectId $AzureDataEntry.ObjectId | ForEach-Object { "$($_.UserPrincipalName):$($_.DisplayName):$($_.ObjectId):$($_.Type),"})) -Force
             }
             $obj
         }
@@ -170,12 +155,16 @@ clear-host
     Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzSubscription -SubscriptionId $mysubid" | Export-Csv -Path "$mysubid\3_Inv_AzSubscription.csv" -NoTypeInformation  -Force | Out-Null
             
     # 3.4 - Collecting Subscription Resources
-    write-host "4 - Collecting Resources Details"
+    write-host "4 - Collecting Subscription Resources"
     Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzResource" | Export-Csv -Path "$mysubid\4_Inv_AzAllResources.csv" -NoTypeInformation  -Force | Out-Null
             
-    # 3.5 - Collecting RBAC from all Scopes - Management Group, Subscription, Resource Groups, Resources and DataContainers
-    write-host "5 - Collecting RBAC from all Scopes - Management Group, Subscription, Resource Groups, Resources and DataContainers"
+    # 3.5 - Collecting Management Group and Subscription RBAC
+    write-host "5 - Collecting Management Group and Subscription RBAC"
     Get_Inv_AzData -datasource "Subscription" -cmd "Get-AzRoleAssignment" | Export-Csv -Path "$mysubid\5_Inv_RBAC.csv" -NoTypeInformation  -Force | Out-Null
+
+    # 3.6 - Collecting Users
+    write-host "6 - Collecting details from Users, Groups and Managed Identity assigned to RBAC"
+    Get_Inv_AzData -datasource "AAD" -cmd "Get-AzureADUser" | Export-Csv -Path "$mysubid\2_Inv_AzADUser.csv" -NoTypeInformation  -Force | Out-Null
 
     # 3.6 - Collecting Users-Assigned Managed Identity
     write-host "6 - Collecting Users-Assigned Managed Identity"
