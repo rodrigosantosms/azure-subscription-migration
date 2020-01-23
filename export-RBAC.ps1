@@ -43,7 +43,9 @@ clear-host
     Invoke-WebRequest -Uri $file2 -outfile "import-RBAC.ps1"
 
     install-module -name Az.ManagedServiceIdentity -force
+    install-module -name AzureAD -force
     import-module -name Az.ManagedServiceIdentity -force
+    Import-Module -name AzureAD -Force
 
 ################################################################################################
 # 2 - Defining functions to collect the data
