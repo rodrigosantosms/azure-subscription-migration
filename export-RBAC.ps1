@@ -43,7 +43,7 @@ clear-host
     Invoke-WebRequest -Uri $file2 -outfile "import-RBAC.ps1"
 
     install-module -name Az.ManagedServiceIdentity -force -repository "PSGallery"
-    #install-module -name AzureAD -force -repository "PSGallery"
+    install-module -name AzureAD -force -repository "PSGallery"
     import-module -name Az.ManagedServiceIdentity -force 
     Import-Module -name AzureAD -Force
 
@@ -85,11 +85,9 @@ clear-host
             }
             if(($datasource -eq "Subscription") -and ($cmd -eq "Get-AzRoleAssignment")){
                 $currentRBACObjectId = $AzureDataEntry.ObjectId
-                write-host $currentRBACObjectId
                 if($AzureDataEntry.ObjectType -eq "User"){
-                    write-host "get-azureaduser -filter ObjectId eq '$currentRBACObjectId'"
                     $currentRBACUser = get-azureaduser -filter "ObjectId eq '$currentRBACObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value  ($currentRBACUser).UserType -Force
+                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value ($currentRBACUser).UserType -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value ($currentRBACUser).Mail -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value ($currentRBACUser).DirSyncEnabled -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value ($currentRBACUser).MailNickName -Force
@@ -98,22 +96,22 @@ clear-host
                     $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value "" -Force
                 }elseif ($AzureDataEntry.ObjectType -eq "Group"){
                     $currentRBACGroup = get-azureadgroup -filter "ObjectId eq '$currentRBACObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value  "" -Force
+                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value "" -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value "" -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value ($currentRBACGroup).DirSyncEnabled -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value ($currentRBACGroup).MailNickName -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value"" -Force
+                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value "" -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value "" -Force
                 }elseif($AzureDataEntry.ObjectType -eq "ServicePrincipal"){
                     $currentRBACServicePrincipal = get-azureadServicePrincipal -filter "ObjectId eq '$currentRBACObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value  "" -Force
+                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value "" -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value "" -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value "" -Force
                     $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value  ($currentRBACServicePrincipal).ServicePrincipalType -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value  ($currentRBACServicePrincipal).AccountEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value  ($currentRBACServicePrincipal).Homepage -Force
+                    $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value ($currentRBACServicePrincipal).ServicePrincipalType -Force
+                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value ($currentRBACServicePrincipal).AccountEnabled -Force
+                    $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value ($currentRBACServicePrincipal).Homepage -Force
                 }
             }
             $obj
