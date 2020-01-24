@@ -25,9 +25,8 @@ clear-host
     write-host "List of Management Groups, List of StorageAccount Blob Containers using RBAC, List of AzureSQL using RBAC for the Admin,  "
     write-host "List of Key Vaults and their Access Policies, List of Managed Identities, and much more can be esily incorporated.        "
     Write-host "                                                                                                                          "
-    pause
 
-    $MySubscriptionID = Read-Host "Please enter your SubscriptionID: "
+    $MySubscriptionID = Read-Host "Please enter your SubscriptionID "
 
     Set-AzContext -SubscriptionId $MySubscriptionID
     Select-AzSubscription -Subscription $MySubscriptionID
@@ -36,15 +35,23 @@ clear-host
 
     # Folder where the script will save CSV and TXT files
     Set-Location -path ($home + "\clouddrive")
+    if($True -eq (test-path -Path "$mysubid")){
+        $CreationTime = ((Get-item -Path $mysubid).CreationTime | ForEach-Object { ($_ -replace ":", "-" -replace " ","-" -replace "/","-") })
+        Rename-Item "$mysubid" -NewName ($mysubid + "_" + $CreationTime + "_old") -Force -ErrorAction SilentlyContinue | Out-Null
+    }
     New-Item -Path "$mysubid" -Type Directory -Force -ErrorAction SilentlyContinue | Out-Null
 
     # Downloading Second Script
     $file2 = "https://raw.githubusercontent.com/rodrigosantosms/azure-subscription-migration/master/import-RBAC.ps1"
     Invoke-WebRequest -Uri $file2 -outfile "import-RBAC.ps1"
 
-    install-module -name Az.ManagedServiceIdentity -force -repository "PSGallery"
-    install-module -name AzureAD -force -repository "PSGallery"
-    import-module -name Az.ManagedServiceIdentity -force 
+    if($null -eq (get-module  -name Az.ManagedServiceIdentity)){
+        install-module -name Az.ManagedServiceIdentity -force -repository "PSGallery"
+    }
+    if($null -eq (get-module  -name Az.AzureAD)){
+        install-module -name AzureAD -force -repository "PSGallery"
+    }
+    import-module -name Az.ManagedServiceIdentity -force
     Import-Module -name AzureAD -Force
 
 ################################################################################################
@@ -71,14 +78,24 @@ clear-host
                 if(($DataProperty.Definition -like "System.Collections*") -or ($DataProperty.Definition -like "Microsoft.Azure*")){
                     if ($DataProperty.Name -eq "Tags"){
                         if($null -eq $AzureDataEntry.Tags) {
-                            $obj | Add-Member -MemberType NoteProperty -Name Tags -Value " " -Force
-                        }else {
+                            $obj | Add-Member -MemberType NoteProperty -Name Tags -Value "" -Force
+                        }else{
                             $ResTag = ([string]($AzureDataEntry.Tags.GetEnumerator() | ForEach-Object { "$($_.Key):$($_.Value)," }))
                             $obj | Add-Member -MemberType NoteProperty -Name Tags -Value $ResTag -Force
                         }
-                    }else{
-                        $obj | Add-Member -MemberType NoteProperty -Name ($DataProperty.Name) -Value ([string]($AzureDataEntry.($DataProperty.Name) | ForEach-Object { "$($_)," })) -Force
-                    }
+                    }elseif ($DataProperty.Name -eq "Identity"){
+                            $obj | Add-Member -MemberType NoteProperty -Name ("Identity_PrincipalId") -Value ($AzureDataEntry.Identity.PrincipalId) -Force
+                            $obj | Add-Member -MemberType NoteProperty -Name ("Identity_TenantId") -Value ($AzureDataEntry.Identity.TenantId) -Force
+                            $obj | Add-Member -MemberType NoteProperty -Name ("Identity_Type") -Value ($AzureDataEntry.Identity.Type) -Force
+                            if((($AzureDataEntry.Identity.Type) -eq "SystemAssignedUserAssigned") -or (($AzureDataEntry.Identity.Type) -eq "UserAssigned")){
+                                $ResUsrId = ([string]($AzureDataEntry.Identity.UserAssignedIdentities.GetEnumerator() | ForEach-Object { "$($_.Key)," }))
+                                $obj | Add-Member -MemberType NoteProperty -Name ("Identity_UserAssignedIdentities") -Value $ResUsrId -Force
+                            }else{
+                                $obj | Add-Member -MemberType NoteProperty -Name ("Identity_UserAssignedIdentities") -Value "" -Force
+                            }
+                        }else{
+                            $obj | Add-Member -MemberType NoteProperty -Name ($DataProperty.Name) -Value ([string]($AzureDataEntry.($DataProperty.Name) | ForEach-Object { "$($_)," })) -Force
+                        }
                 }else{
                     $obj | Add-Member -MemberType NoteProperty -Name ($DataProperty.Name) -Value $AzureDataEntry.($DataProperty.Name) -Force
                 }
@@ -86,33 +103,19 @@ clear-host
             if(($datasource -eq "Subscription") -and ($cmd -eq "Get-AzRoleAssignment")){
                 $currentRBACObjectId = $AzureDataEntry.ObjectId
                 if($AzureDataEntry.ObjectType -eq "User"){
-                    $currentRBACUser = get-azureaduser -filter "ObjectId eq '$currentRBACObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value ($currentRBACUser).UserType -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value ($currentRBACUser).Mail -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value ($currentRBACUser).DirSyncEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value ($currentRBACUser).MailNickName -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value ($currentRBACUser).AccountEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value "" -Force
+                    $currentRBAC = get-azureaduser -filter "ObjectId eq '$currentRBACObjectId'"
                 }elseif ($AzureDataEntry.ObjectType -eq "Group"){
-                    $currentRBACGroup = get-azureadgroup -filter "ObjectId eq '$currentRBACObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value ($currentRBACGroup).DirSyncEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value ($currentRBACGroup).MailNickName -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value "" -Force
+                    $currentRBAC = get-azureadgroup -filter "ObjectId eq '$currentRBACObjectId'"
                 }elseif($AzureDataEntry.ObjectType -eq "ServicePrincipal"){
-                    $currentRBACServicePrincipal = get-azureadServicePrincipal -filter "ObjectId eq '$currentRBACObjectId'"
-                    $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value "" -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value ($currentRBACServicePrincipal).ServicePrincipalType -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value ($currentRBACServicePrincipal).AccountEnabled -Force
-                    $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value ($currentRBACServicePrincipal).Homepage -Force
+                    $currentRBAC = get-azureadServicePrincipal -filter "ObjectId eq '$currentRBACObjectId'"
                 }
+                $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value ($currentRBAC).UserType -Force
+                $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value ($currentRBAC).Mail -Force
+                $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value ($currentRBAC).DirSyncEnabled -Force
+                $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value ($currentRBAC).MailNickName -Force
+                $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value ($currentRBAC).ServicePrincipalType -Force
+                $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value ($currentRBAC).AccountEnabled -Force
+                $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value ($currentRBAC).Homepage -Force
             }
             $obj
         }
