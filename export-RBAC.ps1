@@ -45,14 +45,15 @@ clear-host
     $file2 = "https://raw.githubusercontent.com/rodrigosantosms/azure-subscription-migration/master/import-RBAC.ps1"
     Invoke-WebRequest -Uri $file2 -outfile "import-RBAC.ps1"
 
+    # Installing/Importing required PowerShell modules
     if($null -eq (get-module  -name Az.ManagedServiceIdentity)){
-        install-module -name Az.ManagedServiceIdentity -force -repository "PSGallery"
+        install-module -name Az.ManagedServiceIdentity -force -repository "PSGallery" -ErrorAction SilentlyContinue
     }
     if($null -eq (get-module  -name Az.AzureAD)){
-        install-module -name AzureAD -force -repository "PSGallery"
+        install-module -name AzureAD -force -repository "PSGallery" -ErrorAction SilentlyContinue
     }
-    import-module -name Az.ManagedServiceIdentity -force
-    Import-Module -name AzureAD -Force
+    import-module -name Az.ManagedServiceIdentity -force -ErrorAction SilentlyContinue
+    Import-Module -name AzureAD -Force -ErrorAction SilentlyContinue
 
 ################################################################################################
 # 2 - Defining functions to collect the data
