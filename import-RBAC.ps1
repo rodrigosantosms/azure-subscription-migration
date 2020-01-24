@@ -170,7 +170,7 @@ function Import-InvAzRoleAssignment ($mysubid) {
     foreach ($RoleAssignment in $InvAzRoleAssignment) {
         if ($RoleAssignment.ObjectType -eq "User") {
             $userId = Get-AzADUser -Mail $RoleAssignment.Mail
-            New-AzRoleAssignment -SignInName $userId.SignInName -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
+            New-AzRoleAssignment -UserPrincipalName $userId.UserPrincipalName -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
         }
         elseif ($RoleAssignment.ObjectType -eq "Group") {
             $groupId = Get-AzADGroup -SearchString $RoleAssignment.DisplayName
