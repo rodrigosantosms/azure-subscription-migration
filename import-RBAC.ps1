@@ -96,62 +96,66 @@ function Enable-InvAzSystemUserAssignedIdentity ($mysubid) {
     }
 }
 
-# 2.3 - Function to recreate all Custom RBAC Roles
+# 2.3 - Function to recreate all Custom RBAC Roles Definition
 function Import-InvAzRoleDefinition ($mysubid) {
     $path = "$mysubid\1_Inv_AzADRoleDefinition.csv"
     $InvAzRoleDefinition = Import-Csv $path
 
     foreach ($rl in $InvAzRoleDefinition) {
-        $role = Get-AzRoleDefinition "Virtual Machine Contributor"
-        $role.Id = $null
-        $role.Actions.RemoveRange(0, $role.Actions.Count)
-        $role.DataActions.RemoveRange(0, $role.DataActions.Count)
-        $role.NotActions.RemoveRange(0, $role.NotActions.Count)
-        $role.NotDataActions.RemoveRange(0, $role.NotDataActions.Count)
-        $role.Name = $rl.Name
-        $role.Description = $rl.Description
-        $role.AssignableScopes.Clear()
+        if($null -eq (Get-AzRoleDefinition -Name $rl.Name)){
+            $role = Get-AzRoleDefinition "Virtual Machine Contributor"
+            $role.Id = $null
+            $role.Actions.RemoveRange(0, $role.Actions.Count)
+            $role.DataActions.RemoveRange(0, $role.DataActions.Count)
+            $role.NotActions.RemoveRange(0, $role.NotActions.Count)
+            $role.NotDataActions.RemoveRange(0, $role.NotDataActions.Count)
+            $role.Name = $rl.Name
+            $role.Description = $rl.Description
+            $role.AssignableScopes.Clear()
 
-        if ($rl.actions.count -lt 2) {
-            $rlactions = [System.Collections.ArrayList]$rl.actions.Split(',')
-            $rlactions.RemoveAt($rlactions.Count - 1)
-            foreach ($act in $rlactions) {
-                $role.Actions.Add($act)
+            if ($rl.actions.count -lt 2) {
+                $rlactions = [System.Collections.ArrayList]$rl.actions.Split(',')
+                $rlactions.RemoveAt($rlactions.Count - 1)
+                foreach ($act in $rlactions) {
+                    $role.Actions.Add($act)
+                }
             }
-        }
 
-        if ($rl.DataActions.count -lt 2) {
-            $rldataactions = [System.Collections.ArrayList]$rl.DataActions.Split(',')
-            $rldataactions.RemoveAt($rldataactions.Count - 1)
-            foreach ($dataact in $rldataactions) {
-                $role.DataActions.Add($dataact.trim())
+            if ($rl.DataActions.count -lt 2) {
+                $rldataactions = [System.Collections.ArrayList]$rl.DataActions.Split(',')
+                $rldataactions.RemoveAt($rldataactions.Count - 1)
+                foreach ($dataact in $rldataactions) {
+                    $role.DataActions.Add($dataact.trim())
+                }
             }
-        }
 
-        if ($rl.NotActions.count -lt 2) {
-            $Notrlactions = [System.Collections.ArrayList]$rl.NotActions.Split(',')
-            $Notrlactions.RemoveAt($Notrlactions.Count - 1)
-            foreach ($NotAct in $Notrlactions) {
-                $role.NotActions.Add($NotAct.trim())
+            if ($rl.NotActions.count -lt 2) {
+                $Notrlactions = [System.Collections.ArrayList]$rl.NotActions.Split(',')
+                $Notrlactions.RemoveAt($Notrlactions.Count - 1)
+                foreach ($NotAct in $Notrlactions) {
+                    $role.NotActions.Add($NotAct.trim())
+                }
             }
-        }
 
-        if ($rl.NotDataActions.count -lt 2) {
-            $Notrldataactions = [System.Collections.ArrayList]$rl.NotDataActions.Split(',')
-            $Notrldataactions.RemoveAt($Notrldataactions.Count - 1)
-            foreach ($NotDataact in $Notrldataactions) {
-                $role.NotDataActions.Add($NotDataact.trim())
+            if ($rl.NotDataActions.count -lt 2) {
+                $Notrldataactions = [System.Collections.ArrayList]$rl.NotDataActions.Split(',')
+                $Notrldataactions.RemoveAt($Notrldataactions.Count - 1)
+                foreach ($NotDataact in $Notrldataactions) {
+                    $role.NotDataActions.Add($NotDataact.trim())
+                }
             }
-        }
 
-        if ($rl.AssignableScopes.count -lt 2) {
-            $AsgScopes = [System.Collections.ArrayList]$rl.AssignableScopes.Split(',')
-            $AsgScopes.RemoveAt($AsgScopes.Count - 1)
-            foreach ($asc in $AsgScopes) {
-                $role.AssignableScopes.Add($asc.trim())
+            if ($rl.AssignableScopes.count -lt 2) {
+                $AsgScopes = [System.Collections.ArrayList]$rl.AssignableScopes.Split(',')
+                $AsgScopes.RemoveAt($AsgScopes.Count - 1)
+                foreach ($asc in $AsgScopes) {
+                    $role.AssignableScopes.Add($asc.trim())
+                }
             }
+            New-AzRoleDefinition -Role $role
+        }else{
+            write-host "The following RBAC Definition already exists: " $rl.Name
         }
-        New-AzRoleDefinition -Role $role
     }
 }
 
