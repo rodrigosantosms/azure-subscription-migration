@@ -60,43 +60,7 @@ clear-host
 # 2 - Defining functions to recreate/reassign RBAC config. They all read the exported CSV files to recreate the objects/RBAC 
 #
 
-# 2.1 - Function to recreate User Assigned Identity
-function Import-InvAzUserAssignedIdentity () {
-    $path = "$mysubid\6_Inv_UserAssignedIdentity.csv"
-    $InvAzUserAssignedIdentity = Import-Csv $path
-    foreach ($uai in $InvAzUserAssignedIdentity) {
-        New-AzUserAssignedIdentity -ResourceGroupName $uai.ResourceGroupName -Name $uai.Name -Location $uai.Location
-    }
-}
-
-# 2.2 - Function to reenable System and/or User Assigned Identity
-function Enable-InvAzSystemUserAssignedIdentity ($mysubid) {
-    $path = "$mysubid\4_Inv_AzAllResources.csv"
-    $InvAzSystemUserAssignedIdentity = Import-Csv $path
-    foreach ($suai in $InvAzSystemUserAssignedIdentity) {
-        if(($suai.Identity_Type -eq "SystemAssignedUserAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
-            $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
-            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -AssignIdentity:$SystemAssigned
-            $usids = [System.Collections.ArrayList]$suai.Identity_UserAssignedIdentities.Split(',')
-            $usids.RemoveAt($usids.Count - 1)
-            foreach ($usid in $usids) {
-                Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -IdentityType UserAssigned -IdentityID ($usid.trim())
-            }
-        }elseif(($suai.Identity_Type -eq "UserAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
-            $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
-            $usids = [System.Collections.ArrayList]$suai.Identity_UserAssignedIdentities.Split(',')
-            $usids.RemoveAt($usids.Count - 1)
-            foreach ($usid in $usids) {
-                Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -IdentityType UserAssigned -IdentityID ($usid.trim())
-            }
-        }elseif(($suai.Identity_Type -eq "SystemAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
-            $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
-            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -AssignIdentity:$SystemAssigned
-        }
-    }
-}
-
-# 2.3 - Function to recreate all Custom RBAC Roles Definition
+# 2.1 - Function to recreate all Custom RBAC Roles Definition
 function Import-InvAzRoleDefinition ($mysubid) {
     $path = "$mysubid\1_Inv_AzADRoleDefinition.csv"
     $InvAzRoleDefinition = Import-Csv $path
@@ -159,9 +123,48 @@ function Import-InvAzRoleDefinition ($mysubid) {
     }
 }
 
+# 2.2 - Function to recreate User Assigned Identity
+function Import-InvAzUserAssignedIdentity () {
+    $path = "$mysubid\6_Inv_UserAssignedIdentity.csv"
+    $InvAzUserAssignedIdentity = Import-Csv $path
+    foreach ($uai in $InvAzUserAssignedIdentity) {
+        New-AzUserAssignedIdentity -ResourceGroupName $uai.ResourceGroupName -Name $uai.Name -Location $uai.Location
+    }
+}
+
+# 2.3 - Function to reenable System and/or User Assigned Identity
+function Enable-InvAzSystemUserAssignedIdentity ($mysubid) {
+    $path = "$mysubid\4_Inv_AzAllResources.csv"
+    $InvAzSystemUserAssignedIdentity = Import-Csv $path
+    foreach ($suai in $InvAzSystemUserAssignedIdentity) {
+        if(($suai.Identity_Type -eq "SystemAssignedUserAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
+            $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
+            write-host 'Enabling SystemAssignedUserAssigned on VM ' $vm.Name
+            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -AssignIdentity:$SystemAssigned
+            $usids = [System.Collections.ArrayList]$suai.Identity_UserAssignedIdentities.Split(',')
+            $usids.RemoveAt($usids.Count - 1)
+            foreach ($usid in $usids) {
+                Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -IdentityType UserAssigned -IdentityID ($usid.trim())
+            }
+        }elseif(($suai.Identity_Type -eq "UserAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
+            $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
+            write-host 'Enabling UserAssigned on VM ' $vm.Name
+            $usids = [System.Collections.ArrayList]$suai.Identity_UserAssignedIdentities.Split(',')
+            $usids.RemoveAt($usids.Count - 1)
+            foreach ($usid in $usids) {
+                Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -IdentityType UserAssigned -IdentityID ($usid.trim())
+            }
+        }elseif(($suai.Identity_Type -eq "SystemAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
+            $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
+            write-host 'Enabling SystemAssigned on VM ' $vm.Name
+            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -AssignIdentity:$SystemAssigned
+        }
+    }
+}
+
 # 2.4 - Function to Re-assign RBAC
 # This function uses:
-    # the 'MAIL' attribute to determine the 'User'
+    # the 'Mail' attribute to determine the 'Guest Users', and 'SignInName' to determine 'Domain Users'
     # the 'DisplayName' to determine the 'Groups' (If you have created the Groups with different names, the script will fail to reassign the RBAC to them, you can update the CSV files manually to reflect the new names)
     # the 'DisplayName' + 'ResourceGroupName' to determine the 'UserManagedIdentity' (Since the UserManagedIdentity are created insite an RG, there should be no issues with this resource) 
 function Import-InvAzRoleAssignment ($mysubid) {
@@ -169,10 +172,13 @@ function Import-InvAzRoleAssignment ($mysubid) {
     $InvAzRoleAssignment = Import-Csv $path
     foreach ($RoleAssignment in $InvAzRoleAssignment) {
         if ($RoleAssignment.ObjectType -eq "User") {
-            $userId = Get-AzADUser -Mail $RoleAssignment.Mail
+            if ($RoleAssignment.UserType -eq "Guest") {
+                $userId = Get-AzureADUser -Filter "UserPrincipalName eq '$RoleAssignment.Mail'"
+            }else{
+                $userId = Get-AzureADUser -Filter "UserPrincipalName eq '$RoleAssignment.SignInName'"
+            } 
             New-AzRoleAssignment -UserPrincipalName $userId.UserPrincipalName -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
-        }
-        elseif ($RoleAssignment.ObjectType -eq "Group") {
+        }elseif ($RoleAssignment.ObjectType -eq "Group") {
             $groupId = Get-AzADGroup -SearchString $RoleAssignment.DisplayName
             New-AzRoleAssignment -ObjectId $groupId.id -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
         }
@@ -192,25 +198,24 @@ write-host ""
 write-host "Subscription: "  $AzSubscription.Name
 write-host ""
 
-    # 3.1 - Recreating User Assigned Managed Identity"
-    write-host "1 - Recreating User Assigned Managed Identity"
+    # 3.1 - Recreating RBAC Custom Role Definition"
+    write-host "1 - Recreating RBAC Custom Role Definition"
+    Import-InvAzRoleDefinition -mysubid $mysubid
+
+    # 3.2 - Recreating User Assigned Managed Identity"
+    write-host "2 - Recreating User Assigned Managed Identity"
     Import-InvAzUserAssignedIdentity -mysubid $mysubid
 
-    # 3.2 - Reenabling System Managed Identity and/or reassigning User Assigned Identity"
-    write-host "2 - Reenabling System Managed Identity and/or reassigning User Assigned Identity"
+    # 3.3 - Reenabling System Managed Identity and/or reassigning User Assigned Identity"
+    write-host "3 - Reenabling System Managed Identity and/or reassigning User Assigned Identity"
     Enable-InvAzSystemUserAssignedIdentity -mysubid $mysubid
-
-    # 3.3 - Recreating RBAC Custom Role Definition"
-    write-host "3 - Recreating RBAC Custom Role Definition"
-    Import-InvAzRoleDefinition -mysubid $mysubid
     
-    write-host "Waiting 30 seconds to replicate the RBAC Definition"
-    Start-Sleep -s 30
+    write-host "Waiting 15 seconds to replicate the RBAC Definition"
+    Start-Sleep -s 15
     
     # 3.4 - Reapplying RBAC Aassignment to Users, Groups and UserManagedIdentities in all Scopes (Data and Management Plans)"
     write-host "4 - Reapplying RBAC Aassignment to Users, Groups and UserManagedIdentities in all Scopes (Data and Management Plans)"
     Import-InvAzRoleAssignment -mysubid $mysubid
-
 
     write-host ""
     write-host "****************** CONFIGURATION SUCCESSFULLY APPLIED TO THE  SUBSCRIPTION  ******************"
