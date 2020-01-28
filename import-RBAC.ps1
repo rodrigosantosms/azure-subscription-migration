@@ -64,7 +64,6 @@ clear-host
 function Import-InvAzRoleDefinition ($mysubid) {
     $path = "$mysubid\1_Inv_AzADRoleDefinition.csv"
     $InvAzRoleDefinition = Import-Csv $path
-
     foreach ($rl in $InvAzRoleDefinition) {
         if($null -eq (Get-AzRoleDefinition -Name $rl.Name)){
             $role = Get-AzRoleDefinition "Virtual Machine Contributor"
@@ -116,7 +115,8 @@ function Import-InvAzRoleDefinition ($mysubid) {
                     $role.AssignableScopes.Add($asc.trim())
                 }
             }
-            New-AzRoleDefinition -Role $role
+            New-AzRoleDefinition -Role $role | Out-Null
+            write-host "RBAC definition recreated successfully: " $rl.Name
         }else{
             write-host "The following RBAC Definition already exists: " $rl.Name
         }
@@ -128,7 +128,8 @@ function Import-InvAzUserAssignedIdentity () {
     $path = "$mysubid\6_Inv_UserAssignedIdentity.csv"
     $InvAzUserAssignedIdentity = Import-Csv $path
     foreach ($uai in $InvAzUserAssignedIdentity) {
-        New-AzUserAssignedIdentity -ResourceGroupName $uai.ResourceGroupName -Name $uai.Name -Location $uai.Location
+        New-AzUserAssignedIdentity -ResourceGroupName $uai.ResourceGroupName -Name $uai.Name -Location $uai.Location  | Out-Null
+        write-host "User Assigned Managed Identity recreated successfully - Name: " $uai.Name " - ResourceGroupName: " $uai.ResourceGroupName 
     }
 }
 
@@ -139,25 +140,18 @@ function Enable-InvAzSystemUserAssignedIdentity ($mysubid) {
     foreach ($suai in $InvAzSystemUserAssignedIdentity) {
         if(($suai.Identity_Type -eq "SystemAssignedUserAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
             $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
-            write-host 'Enabling SystemAssignedUserAssigned on VM ' $vm.Name
-            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -AssignIdentity:$SystemAssigned
-            $usids = [System.Collections.ArrayList]$suai.Identity_UserAssignedIdentities.Split(',')
-            $usids.RemoveAt($usids.Count - 1)
-            foreach ($usid in $usids) {
-                Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -IdentityType UserAssigned -IdentityID ($usid.trim())
-            }
+            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -AssignIdentity:$SystemAssigned  | Out-Null
+                write-host 'Enabled SystemAssigned Managed Identity on VM ' $vm.Name
+            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -IdentityType UserAssigned -IdentityID $suai.Identity_UserAssignedIdentities  | Out-Null
+                write-host 'Enabled UserAssigned Managed Identity on VM ' $vm.Name
         }elseif(($suai.Identity_Type -eq "UserAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
             $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
-            write-host 'Enabling UserAssigned on VM ' $vm.Name
-            $usids = [System.Collections.ArrayList]$suai.Identity_UserAssignedIdentities.Split(',')
-            $usids.RemoveAt($usids.Count - 1)
-            foreach ($usid in $usids) {
-                Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -IdentityType UserAssigned -IdentityID ($usid.trim())
-            }
+            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -IdentityType UserAssigned -IdentityID $suai.Identity_UserAssignedIdentities  | Out-Null
+                write-host 'Enabled UserAssigned Managed Identity on VM ' $vm.Name
         }elseif(($suai.Identity_Type -eq "SystemAssigned") -and ($suai.ResourceType -eq "Microsoft.Compute/virtualMachines")){
-            $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name
-            write-host 'Enabling SystemAssigned on VM ' $vm.Name
-            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -AssignIdentity:$SystemAssigned
+            $vm = Get-AzVM -ResourceGroupName $suai.ResourceGroupName -Name $suai.Name  | Out-Null
+            Update-AzVM -ResourceGroupName $suai.ResourceGroupName -VM $vm -AssignIdentity:$SystemAssigned  | Out-Null
+                write-host 'Enabled SystemAssigned Managed Identity on VM ' $vm.Name
         }
     }
 }
@@ -170,14 +164,42 @@ function Enable-InvAzSystemUserAssignedIdentity ($mysubid) {
 function Import-InvAzRoleAssignment ($mysubid) {
     $path = "$mysubid\5_Inv_RBAC.csv"
     $InvAzRoleAssignment = Import-Csv $path
+    $tenantdetail = get-AzureADTenantDetail
+    $tenantdetail = $tenantdetail.VerifiedDomains | Where-Object -Property _Default -Match "true" | Select-object Name
     foreach ($RoleAssignment in $InvAzRoleAssignment) {
-        if ($RoleAssignment.ObjectType -eq "User") {
-            if ($RoleAssignment.UserType -eq "Guest") {
-                $userId = Get-AzureADUser -Filter "UserPrincipalName eq '$RoleAssignment.Mail'"
-            }else{
+        if (($RoleAssignment.ObjectType -eq "User") -or ($RoleAssignment.ObjectType -eq "Unknown")) {
+            
+            # Asking User which Module to convert or convert all
+            [int]$UserCreationOp = 0
+            Write-Host ("-----------------------------------------------------------------------")
+            write-host "How did you migrate the users from Source Tenant to Destination Tenant?"
+            write-host "Type 1 for: I've created new Accounts with the same UserID (i.e. jrussel@contoso.com --> jrussel@alpine.com)."
+            write-host "Type 2 for: I've added the existing Accounts from Source Tenant as Guests in the Destination Tenant (i.e. jrussel@contoso.com --> jrussel@contoso.com (Guest))."
+            write-host "Type 3 for: I've created the Accounts with different UserIDs (i.e. jrussel@contoso.com --> john.russel@alpine.com)."
+            write-host "Type 4 for: I didn't migrate the Accounts (Users) from Source Tenant to Destination Tenant yet."
+            Write-Host (" ")
+            [int]$UserCreationOp = Read-Host
+            Write-Host ("-----------------------------------------------------------------------")
+
+            do {
+                if(([int]$UserCreationOp -lt 5) -and ([int]$UserCreationOp -ne 0)){
+                    continue
+                }else{
+                    Write-Host ("-----------------------------------------------------------------------")
+                    write-host "The number you entered is not valid. Enter a number from 1 to 4"
+                    Write-Host (" ")
+                    [int]$UserCreationOp = Read-Host
+                    Write-Host ("-----------------------------------------------------------------------")
+                }
+            } while (([int]$UserCreationOp -gt 5) -or ([int]$UserCreationOp -eq 0))
+
+            if (($RoleAssignment.UserType -eq "Member") -or ($RoleAssignment.ObjectType -eq "None")) {
                 $userId = Get-AzureADUser -Filter "UserPrincipalName eq '$RoleAssignment.SignInName'"
-            } 
+            }elseif($RoleAssignment.UserType -eq "Guest"){
+                $userId = Get-AzureADUser -Filter "UserPrincipalName eq '$RoleAssignment.OtherMails'"
+            }
             New-AzRoleAssignment -UserPrincipalName $userId.UserPrincipalName -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null
+            write-host 'Assigned Guest User ' $userId.UserPrincipalName " - at scope: " $RoleAssignment.Scope " - with Definition: " $RoleAssignment.RoleDefinitionName
         }elseif ($RoleAssignment.ObjectType -eq "Group") {
             $groupId = Get-AzADGroup -SearchString $RoleAssignment.DisplayName
             New-AzRoleAssignment -ObjectId $groupId.id -RoleDefinitionName $RoleAssignment.RoleDefinitionName -Scope $RoleAssignment.Scope -ErrorAction SilentlyContinue | Out-Null

@@ -103,7 +103,7 @@ clear-host
             }
             if(($datasource -eq "Subscription") -and ($cmd -eq "Get-AzRoleAssignment")){
                 $currentRBACObjectId = $AzureDataEntry.ObjectId
-                if($AzureDataEntry.ObjectType -eq "User"){
+                if(($AzureDataEntry.ObjectType -eq "User") -or ($AzureDataEntry.ObjectType -eq "None") -or ($AzureDataEntry.ObjectType -eq "Unknown")){
                     $currentRBAC = get-azureaduser -filter "ObjectId eq '$currentRBACObjectId'"
                 }elseif ($AzureDataEntry.ObjectType -eq "Group"){
                     $currentRBAC = get-azureadgroup -filter "ObjectId eq '$currentRBACObjectId'"
@@ -112,8 +112,9 @@ clear-host
                 }
                 $obj | Add-Member -MemberType NoteProperty -Name ("UserType") -Value ($currentRBAC).UserType -Force
                 $obj | Add-Member -MemberType NoteProperty -Name ("Mail") -Value ($currentRBAC).Mail -Force
-                $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value ($currentRBAC).DirSyncEnabled -Force
                 $obj | Add-Member -MemberType NoteProperty -Name ("MailNickName") -Value ($currentRBAC).MailNickName -Force
+                $obj | Add-Member -MemberType NoteProperty -Name ("OtherMails") -Value ($currentRBAC).OtherMails[0] -Force
+                $obj | Add-Member -MemberType NoteProperty -Name ("DirSyncEnabled") -Value ($currentRBAC).DirSyncEnabled -Force
                 $obj | Add-Member -MemberType NoteProperty -Name ("ServicePrincipalType") -Value ($currentRBAC).ServicePrincipalType -Force
                 $obj | Add-Member -MemberType NoteProperty -Name ("AccountEnabled") -Value ($currentRBAC).AccountEnabled -Force
                 $obj | Add-Member -MemberType NoteProperty -Name ("Homepage") -Value ($currentRBAC).Homepage -Force
