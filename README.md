@@ -69,7 +69,5 @@ This script assumes that you already recreated all Users, Groups and Management 
 
 ```
 cd $home/clouddrive
-$file1 = "https://aka.ms/azsubmig"
-Invoke-WebRequest -Uri $file1 -outfile "export-RBAC.ps1"
 ./import-RBAC.ps1
 ```
